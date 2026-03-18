@@ -207,6 +207,17 @@ pub async fn update_mod_preview(app_handle: AppHandle) {
                     .ok();
             }
 
+            // On Linux, make the downloaded binary executable
+            #[cfg(not(target_os = "windows"))]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = std::fs::metadata(&dest_path) {
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o755);
+                    let _ = std::fs::set_permissions(&dest_path, perms);
+                }
+            }
+
             app_handle
                 .emit("update:modPreview:downloaded", latest_version.clone())
                 .ok();
