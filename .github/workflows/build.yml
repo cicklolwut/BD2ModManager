@@ -74,6 +74,14 @@ jobs:
           releaseDraft: true
           prerelease: false
 
+      # Ensure BD2ModPreview.exe placeholder exists for Windows resource bundling
+      - name: Create resource placeholder (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          mkdir -p src-tauri/resources
+          touch src-tauri/resources/BD2ModPreview.exe
+
       # On branch pushes/PRs, just build (no release)
       - name: Build
         if: "!startsWith(github.ref, 'refs/tags/')"
