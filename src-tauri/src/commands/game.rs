@@ -36,6 +36,7 @@ fn cleanup_empty_dirs(game_path: &PathBuf, file_list: &[String]) {
 
 #[tauri::command]
 pub fn locate_game() -> Option<Vec<String>> {
+    #[allow(unused_mut)]
     let mut path_founds = Vec::new();
 
     // Windows: check registry for Neowiz launcher install path

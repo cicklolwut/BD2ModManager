@@ -41,9 +41,8 @@ pub fn is_elevated() -> Result<bool, String> {
     // The original geteuid() == 0 check was incorrect for this use case:
     // this function gates symlink creation, which only needs admin on Windows.
     #[cfg(not(target_os = "windows"))]
-    {
-        return Ok(true);
-    }
+    return Ok(true);
 
+    #[cfg(target_os = "windows")]
     Ok(false)
 }
