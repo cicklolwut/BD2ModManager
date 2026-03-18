@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "resources": {
+      "resources/BD2ModPreview.exe": "resources/BD2ModPreview.exe"
+    }
+  }
+}
