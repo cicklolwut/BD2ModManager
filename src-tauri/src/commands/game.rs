@@ -5,6 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use tauri::Manager;
+#[cfg(target_os = "windows")]
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 use crate::AppState;
@@ -35,20 +36,29 @@ fn cleanup_empty_dirs(game_path: &PathBuf, file_list: &[String]) {
 
 #[tauri::command]
 pub fn locate_game() -> Option<Vec<String>> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let launcher_key_path = r"Software\Neowiz\Browndust2Starter\10000001";
-
     let mut path_founds = Vec::new();
 
-    match hkcu.open_subkey(launcher_key_path) {
-        Ok(key) => {
-            let result: Result<String, _> = key.get_value("path");
-            path_founds.push(result.ok()?);
+    // Windows: check registry for Neowiz launcher install path
+    #[cfg(target_os = "windows")]
+    {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let launcher_key_path = r"Software\Neowiz\Browndust2Starter\10000001";
+
+        match hkcu.open_subkey(launcher_key_path) {
+            Ok(key) => {
+                let result: Result<String, _> = key.get_value("path");
+                if let Ok(path) = result {
+                    path_founds.push(path);
+                }
+            }
+            Err(_) => {}
         }
-        Err(_) => {}
     }
 
-    // [TODO] add steam path
+    // Linux: auto-detection not yet supported.
+    // Users must set the game directory manually via the file picker.
+    // TODO: scan Wine/Proton prefixes and Steam library folders.
+
     if path_founds.is_empty() {
         None
     } else {
@@ -1249,9 +1259,22 @@ pub fn launch_game(state: tauri::State<AppState>) -> Result<(), String> {
         return Err("Game executable not found".to_string());
     }
 
-    std::process::Command::new(exe_path)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    // On Windows, launch the exe directly
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new(exe_path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
 
+    // On Linux, game launching is not yet supported.
+    // Users should launch through their Wine/Proton prefix or Steam.
+    // TODO: add configurable Wine/Proton prefix + binary path in settings.
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Game launching is not supported on Linux yet. Please launch through your Wine/Proton prefix or Steam.".to_string());
+    }
+
+    #[allow(unreachable_code)]
     Ok(())
 }

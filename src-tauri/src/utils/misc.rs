@@ -37,9 +37,12 @@ pub fn is_elevated() -> Result<bool, String> {
         }
     }
 
+    // On Linux/macOS, symlinks don't require elevation — always return true.
+    // The original geteuid() == 0 check was incorrect for this use case:
+    // this function gates symlink creation, which only needs admin on Windows.
     #[cfg(not(target_os = "windows"))]
     {
-        return Ok(unsafe { libc::geteuid() == 0 });
+        return Ok(true);
     }
 
     Ok(false)

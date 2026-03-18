@@ -59,26 +59,41 @@ pub fn get_staging_dir(config: &BD2Config) -> PathBuf {
 }
 
 pub fn get_mod_preview_path(app: &AppHandle) -> Option<PathBuf> {
-    if let Ok(path) = app
-        .app_handle()
-        .path()
-        .resolve("tools", BaseDirectory::AppData)
+    // BD2ModPreview is a Windows-only tool, not available on Linux
+    #[cfg(not(target_os = "windows"))]
+    { let _ = app; return None; }
+
+    #[cfg(target_os = "windows")]
     {
-        Some(path.join("BD2ModPreview.exe").to_path_buf())
-    } else {
-        None
+        if let Ok(path) = app
+            .app_handle()
+            .path()
+            .resolve("tools", BaseDirectory::AppData)
+        {
+            Some(path.join("BD2ModPreview.exe").to_path_buf())
+        } else {
+            None
+        }
     }
 }
 
 pub fn get_7zip_path(app: &AppHandle) -> Option<PathBuf> {
-    if let Ok(path) = app
-        .app_handle()
-        .path()
-        .resolve("tools", BaseDirectory::AppData)
+    // 7z extraction is handled by the sevenz-rust2 crate at the Rust level.
+    // The external 7z.exe binary is only used on Windows.
+    #[cfg(not(target_os = "windows"))]
+    { let _ = app; return None; }
+
+    #[cfg(target_os = "windows")]
     {
-        Some(path.join("7z.exe").to_path_buf())
-    } else {
-        None
+        if let Ok(path) = app
+            .app_handle()
+            .path()
+            .resolve("tools", BaseDirectory::AppData)
+        {
+            Some(path.join("7z.exe").to_path_buf())
+        } else {
+            None
+        }
     }
 }
 
