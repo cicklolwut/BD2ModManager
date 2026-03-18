@@ -29,24 +29,34 @@ pub fn get_mod_preview_version(app_handle: tauri::AppHandle) -> Option<String> {
         return None;
     }
 
-    let file_map = FileMap::open(&exe_path).ok()?;
-
-    let pe = PeFile::from_bytes(&file_map).ok()?;
-
-    let resources = pe.resources().ok()?;
-
-    let version_info = resources.version_info().ok()?;
-
-    let file_info = version_info.file_info();
-    for (_lang, strings) in file_info.strings {
-        for (key, value) in strings {
-            if key == "FileVersion" || key == "ProductVersion" {
-                return Some(value.to_string());
+    // On Windows, read version from PE headers
+    #[cfg(target_os = "windows")]
+    {
+        let file_map = FileMap::open(&exe_path).ok()?;
+        let pe = PeFile::from_bytes(&file_map).ok()?;
+        let resources = pe.resources().ok()?;
+        let version_info = resources.version_info().ok()?;
+        let file_info = version_info.file_info();
+        for (_lang, strings) in file_info.strings {
+            for (key, value) in strings {
+                if key == "FileVersion" || key == "ProductVersion" {
+                    return Some(value.to_string());
+                }
             }
         }
+        return None;
     }
 
-    None
+    // On Linux, try --version flag
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = std::process::Command::new(&exe_path)
+            .arg("--version")
+            .output()
+            .ok()?;
+        let version_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if version_str.is_empty() { None } else { Some(version_str) }
+    }
 }
 
 async fn get_latest_mod_preview_version() -> Result<(Version, String), String> {
@@ -64,11 +74,16 @@ async fn get_latest_mod_preview_version() -> Result<(Version, String), String> {
 
     let latest_version = release.tag_name.trim_start_matches('v');
 
+    #[cfg(target_os = "windows")]
+    let asset_name = "BD2ModPreview.exe";
+    #[cfg(not(target_os = "windows"))]
+    let asset_name = "bd2modpreview";
+
     let asset = release
         .assets
         .iter()
-        .find(|a| a.name == "BD2ModPreview.exe")
-        .ok_or("BD2ModPreview.exe not found in release")?;
+        .find(|a| a.name == asset_name)
+        .ok_or(format!("{} not found in release", asset_name))?;
 
     let version =
         Version::parse(latest_version).map_err(|e| format!("Invalid remote version: {e}"))?;

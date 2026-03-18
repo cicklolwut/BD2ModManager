@@ -59,21 +59,18 @@ pub fn get_staging_dir(config: &BD2Config) -> PathBuf {
 }
 
 pub fn get_mod_preview_path(app: &AppHandle) -> Option<PathBuf> {
-    // BD2ModPreview is a Windows-only tool, not available on Linux
-    #[cfg(not(target_os = "windows"))]
-    { let _ = app; return None; }
-
-    #[cfg(target_os = "windows")]
+    if let Ok(path) = app
+        .app_handle()
+        .path()
+        .resolve("tools", BaseDirectory::AppData)
     {
-        if let Ok(path) = app
-            .app_handle()
-            .path()
-            .resolve("tools", BaseDirectory::AppData)
-        {
-            Some(path.join("BD2ModPreview.exe").to_path_buf())
-        } else {
-            None
-        }
+        #[cfg(target_os = "windows")]
+        { Some(path.join("BD2ModPreview.exe").to_path_buf()) }
+
+        #[cfg(not(target_os = "windows"))]
+        { Some(path.join("bd2modpreview").to_path_buf()) }
+    } else {
+        None
     }
 }
 
