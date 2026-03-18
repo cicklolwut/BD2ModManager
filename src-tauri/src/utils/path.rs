@@ -12,11 +12,37 @@ pub fn ensure_dir_exists(path: &PathBuf) -> Result<(), std::io::Error> {
 }
 
 fn get_executable_dir() -> PathBuf {
-    env::current_exe()
+    let exe_dir = env::current_exe()
         .expect("Failed to get the current exe path")
         .parent()
         .unwrap()
-        .to_path_buf()
+        .to_path_buf();
+
+    // On Linux, the executable directory may be read-only (e.g. AppImage).
+    // Fall back to a writable location in the user's home directory.
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::fs;
+        // Quick writability check
+        let test_path = exe_dir.join(".write_test");
+        match fs::File::create(&test_path) {
+            Ok(_) => { let _ = fs::remove_file(&test_path); }
+            Err(_) => {
+                // Use XDG data dir or ~/.local/share fallback
+                let data_dir = env::var("XDG_DATA_HOME")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|_| {
+                        PathBuf::from(env::var("HOME").unwrap_or_else(|_| "/tmp".into()))
+                            .join(".local/share")
+                    })
+                    .join("BD2ModManager");
+                let _ = fs::create_dir_all(&data_dir);
+                return data_dir;
+            }
+        }
+    }
+
+    exe_dir
 }
 
 pub fn get_default_staging_dir() -> PathBuf {
