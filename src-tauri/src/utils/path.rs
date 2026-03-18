@@ -35,7 +35,7 @@ fn get_executable_dir() -> PathBuf {
                         PathBuf::from(env::var("HOME").unwrap_or_else(|_| "/tmp".into()))
                             .join(".local/share")
                     })
-                    .join("BD2ModManager");
+                    .join("com.bruhnn.BD2ModManager");
                 let _ = fs::create_dir_all(&data_dir);
                 return data_dir;
             }
