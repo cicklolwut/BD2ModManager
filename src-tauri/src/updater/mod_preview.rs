@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use bd2modmanager_lib::utils::path::get_mod_preview_path;
+#[cfg(target_os = "windows")]
 use pelite::{FileMap, PeFile};
 use semver::Version;
 use serde::Deserialize;
